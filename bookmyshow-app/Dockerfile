@@ -1,29 +1,23 @@
-# Step 1 — Build React App
-FROM node:18-alpine AS build
+# Stage 1: Build React App
+FROM node:18-alpine as build
 
 WORKDIR /app
 
-# Copy package.json files
 COPY package.json package-lock.json ./
-
-# Install dependencies
 RUN npm install --legacy-peer-deps
 
-# Copy full project
 COPY . .
 
-# Build production code
+# Fix OpenSSL issue for Node 17+
+ENV NODE_OPTIONS=--openssl-legacy-provider
+
 RUN npm run build
 
-
-# Step 2 — Serve using NGINX (Production)
+# Stage 2: Nginx
 FROM nginx:stable-alpine
 
-# Copy build output to NGINX HTML folder
 COPY --from=build /app/build /usr/share/nginx/html
 
-# Expose port 80 for Kubernetes
 EXPOSE 80
 
-# Start NGINX
 CMD ["nginx", "-g", "daemon off;"]
